@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Location Check</title>
+  <script>
+    const targetLat = 51.3616;
+    const targetLon = -0.3043;
+    const allowedRadiusKm = 2;
+    const formURL = "https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=sj1Qn6gCtkuLZO5InSohxfEr";
+
+    function toRadians(degrees) {
+      return degrees * Math.PI / 180;
+    }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = toRadians(lat2 - lat1);
+      const dLon = toRadians(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function checkBrowserLocation() {
+      navigator.geolocation.getCurrentPosition(position => {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+        const distance = getDistanceFromLatLonInKm(userLat, userLon, targetLat, targetLon);
+
+        if (distance <= allowedRadiusKm) {
+          window.location.href = formURL;
+        } else {
+          document.getElementById("message").innerText = "Access denied: You are outside the allowed area.";
+        }
+      }, () => {
+        checkIPLocation(); // fallback to IP-based check
+      });
+    }
+
+    function checkIPLocation() {
+      fetch("https://ipapi.co/json/")
+        .then(response => response.json())
+        .then(data => {
+          const ipLat = data.latitude;
+          const ipLon = data.longitude;
+          const distance = getDistanceFromLatLonInKm(ipLat, ipLon, targetLat, targetLon);
+
+          if (distance <= allowedRadiusKm) {
+            window.location.href = formURL;
+          } else {
+            document.getElementById("message").innerText = "Access denied: You are outside the allowed area.";
+          }
+        })
+        .catch(() => {
+          document.getElementById("message").innerText = "Unable to determine location.";
+        });
+    }
+
+    window.onload = () => {
+      if (navigator.geolocation) {
+        checkBrowserLocation();
+      } else {
+        checkIPLocation();
+      }
+    };
+  </script>
+</head>
+<body>
+  <h2>Checking your location...</h2>
+  <p id="message"></p>
+</body>
+</html>
